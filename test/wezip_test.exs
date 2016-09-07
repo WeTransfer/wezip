@@ -1,6 +1,6 @@
-defmodule WezipTest do
+defmodule WeZipTest do
   use ExUnit.Case
-  doctest Wezip
+  doctest WeZip
 
   test "the truth" do
     assert 1 + 1 == 2
