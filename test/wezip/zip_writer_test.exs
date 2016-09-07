@@ -37,18 +37,18 @@ defmodule WezipTest.ZipWriter do
 
     {:ok, pid} = StringIO.open("PK\u0003\u0004\u0014\u0000\f\u0000\b\u0000\u0000n\xF1H\xC8\u0001\u0000\u0000\u0000\u0003\u0000\u0000\x85\u0003\u0000\u0000\a\u0000\u0000\u0000foo.bin")
 
-    assert ByteReader.read_4b(pid) == 0x04034b50
-    assert ByteReader.read_2b(pid) == 20
-    assert ByteReader.read_2b(pid) == 12
-    assert ByteReader.read_2b(pid) == 8
-    assert ByteReader.read_2b(pid) == 28160
-    assert ByteReader.read_2b(pid) == 18673
-    assert ByteReader.read_4b(pid) == 456
-    assert ByteReader.read_4b(pid) == 768
-    assert ByteReader.read_4b(pid) == 901
-    assert ByteReader.read_2b(pid) == 7
-    assert ByteReader.read_2b(pid) == 0
-    assert IO.binread(pid, 7) == "foo.bin"
+    assert ByteReader.read_4b(pid) == 0x04034b50 # Signature
+    assert ByteReader.read_2b(pid) == 20         # Version needed to extract
+    assert ByteReader.read_2b(pid) == 12         # gp flags
+    assert ByteReader.read_2b(pid) == 8          # storage mode
+    assert ByteReader.read_2b(pid) == 28160      # DOS time
+    assert ByteReader.read_2b(pid) == 18673      # DOS date
+    assert ByteReader.read_4b(pid) == 456        # CRC32
+    assert ByteReader.read_4b(pid) == 768        # compressed size
+    assert ByteReader.read_4b(pid) == 901        # uncompressed size
+    assert ByteReader.read_2b(pid) == 7          # filename size
+    assert ByteReader.read_2b(pid) == 0          # extra fields size
+    assert IO.binread(pid, 7) == "foo.bin"       # extra fields size
     assert IO.binread(pid, 1) == :eof
   end
 
@@ -59,23 +59,23 @@ defmodule WezipTest.ZipWriter do
 
     {:ok, pid} = StringIO.open("PK\u0003\u0004-\u0000\f\u0000\b\u0000\u0000n\xF1H\xC8\u0001\u0000\u0000\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\a\u0000\u0014\u0000foo.bin\u0001\u0000\u0010\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0003\u0000\u0000\u0000\u0000\u0000\u0000")
 
-    assert ByteReader.read_4b(pid) == 0x04034b50
-    assert ByteReader.read_2b(pid) == 45
-    assert ByteReader.read_2b(pid) == 12
-    assert ByteReader.read_2b(pid) == 8
-    assert ByteReader.read_2b(pid) == 28160
-    assert ByteReader.read_2b(pid) == 18673
-    assert ByteReader.read_4b(pid) == 456
-    assert ByteReader.read_4b(pid) == 0xFFFFFFFF
-    assert ByteReader.read_4b(pid) == 0xFFFFFFFF
-    assert ByteReader.read_2b(pid) == 7
-    assert ByteReader.read_2b(pid) == 20
-    assert IO.binread(pid, 7) == "foo.bin"
+    assert ByteReader.read_4b(pid) == 0x04034b50   # Signature
+    assert ByteReader.read_2b(pid) == 45           # Version needed to extract
+    assert ByteReader.read_2b(pid) == 12           # gp flags
+    assert ByteReader.read_2b(pid) == 8            # storage mode
+    assert ByteReader.read_2b(pid) == 28160        # DOS time
+    assert ByteReader.read_2b(pid) == 18673        # DOS date
+    assert ByteReader.read_4b(pid) == 456          # CRC32
+    assert ByteReader.read_4b(pid) == 0xFFFFFFFF   # compressed size
+    assert ByteReader.read_4b(pid) == 0xFFFFFFFF   # uncompressed size
+    assert ByteReader.read_2b(pid) == 7            # filename size
+    assert ByteReader.read_2b(pid) == 20           # extra fields size
+    assert IO.binread(pid, 7) == "foo.bin"         # extra fields size
 
-    assert ByteReader.read_2b(pid) == 1
-    assert ByteReader.read_2b(pid) == 16
-    assert ByteReader.read_8b(pid) == 0xFFFFFFFF+1
-    assert ByteReader.read_8b(pid) == 768
+    assert ByteReader.read_2b(pid) == 1            # Zip64 extra tag
+    assert ByteReader.read_2b(pid) == 16           # Size of the Zip64 extra payload
+    assert ByteReader.read_8b(pid) == 0xFFFFFFFF+1 # uncompressed size
+    assert ByteReader.read_8b(pid) == 768          # compressed size
   end
 
   test "writes the local file header for an entry that does require Zip64 based on compressed size (with the Zip64 extra)" do
@@ -85,53 +85,53 @@ defmodule WezipTest.ZipWriter do
 
     {:ok, pid} = StringIO.open("PK\u0003\u0004-\u0000\f\u0000\b\u0000\u0000n\xF1H\xC8\u0001\u0000\u0000\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\a\u0000\u0014\u0000foo.bin\u0001\u0000\u0010\u0000\u0000\u0003\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000")
 
-    assert ByteReader.read_4b(pid) == 0x04034b50
-    assert ByteReader.read_2b(pid) == 45
-    assert ByteReader.read_2b(pid) == 12
-    assert ByteReader.read_2b(pid) == 8
-    assert ByteReader.read_2b(pid) == 28160
-    assert ByteReader.read_2b(pid) == 18673
-    assert ByteReader.read_4b(pid) == 456
-    assert ByteReader.read_4b(pid) == 0xFFFFFFFF
-    assert ByteReader.read_4b(pid) == 0xFFFFFFFF
-    assert ByteReader.read_2b(pid) == 7
-    assert ByteReader.read_2b(pid) == 20
-    assert IO.binread(pid, 7) == "foo.bin"
+    assert ByteReader.read_4b(pid) == 0x04034b50   # Signature
+    assert ByteReader.read_2b(pid) == 45           # Version needed to extract
+    assert ByteReader.read_2b(pid) == 12           # gp flags
+    assert ByteReader.read_2b(pid) == 8            # storage mode
+    assert ByteReader.read_2b(pid) == 28160        # DOS time
+    assert ByteReader.read_2b(pid) == 18673        # DOS date
+    assert ByteReader.read_4b(pid) == 456          # CRC32
+    assert ByteReader.read_4b(pid) == 0xFFFFFFFF   # compressed size
+    assert ByteReader.read_4b(pid) == 0xFFFFFFFF   # uncompressed size
+    assert ByteReader.read_2b(pid) == 7            # filename size
+    assert ByteReader.read_2b(pid) == 20           # extra fields size
+    assert IO.binread(pid, 7) == "foo.bin"         # extra fields size
 
-    assert ByteReader.read_2b(pid) == 1
-    assert ByteReader.read_2b(pid) == 16
-    assert ByteReader.read_8b(pid) == 768
-    assert ByteReader.read_8b(pid) == 0xFFFFFFFF+1
+    assert ByteReader.read_2b(pid) == 1            # Zip64 extra tag
+    assert ByteReader.read_2b(pid) == 16           # Size of the Zip64 extra payload
+    assert ByteReader.read_8b(pid) == 768          # uncompressed size
+    assert ByteReader.read_8b(pid) == 0xFFFFFFFF+1 # compressed size
   end
 
   #write_data_descriptor
   test "writes 4-byte sizes into the data descriptor for standard file sizes" do
     {:ok, pid} = StringIO.open("PK\a\b{\u0000\u0000\u0000\xDD^\u0001\u0000\xC0\u001E\u000F\u0000")
 
-    assert ByteReader.read_4b(pid) == 0x08074b50
-    assert ByteReader.read_4b(pid) == 123
-    assert ByteReader.read_4b(pid) == 89821
-    assert ByteReader.read_4b(pid) == 990912
+    assert ByteReader.read_4b(pid) == 0x08074b50 # Signature
+    assert ByteReader.read_4b(pid) == 123        # CRC32
+    assert ByteReader.read_4b(pid) == 89821      # compressed size
+    assert ByteReader.read_4b(pid) == 990912     # uncompressed size
     assert IO.binread(pid, 1) == :eof
   end
 
   test "writes 8-byte sizes into the data descriptor for Zip64 compressed file size" do
     {:ok, pid} = StringIO.open("PK\a\b{\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\xC0\u001E\u000F\u0000\u0000\u0000\u0000\u0000")
 
-    assert ByteReader.read_4b(pid) == 0x08074b50
-    assert ByteReader.read_4b(pid) == 123
-    assert ByteReader.read_8b(pid) == 0xFFFFFFFF+1
-    assert ByteReader.read_8b(pid) == 990912
+    assert ByteReader.read_4b(pid) == 0x08074b50   # Signature
+    assert ByteReader.read_4b(pid) == 123          # CRC32
+    assert ByteReader.read_8b(pid) == 0xFFFFFFFF+1 # compressed size
+    assert ByteReader.read_8b(pid) == 990912       # uncompressed size
     assert IO.binread(pid, 1) == :eof
   end
 
   test "writes 8-byte sizes into the data descriptor for Zip64 uncompressed file size" do
     {:ok, pid} = StringIO.open("PK\a\b{\u0000\u0000\u0000{\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000")
 
-    assert ByteReader.read_4b(pid) == 0x08074b50
-    assert ByteReader.read_4b(pid) == 123
-    assert ByteReader.read_8b(pid) == 123
-    assert ByteReader.read_8b(pid) == 0xFFFFFFFF+1
+    assert ByteReader.read_4b(pid) == 0x08074b50   # Signature
+    assert ByteReader.read_4b(pid) == 123          # CRC32
+    assert ByteReader.read_8b(pid) == 123          # compressed size
+    assert ByteReader.read_8b(pid) == 0xFFFFFFFF+1 # uncompressed size
     assert IO.binread(pid, 1) == :eof
   end
 
@@ -139,111 +139,111 @@ defmodule WezipTest.ZipWriter do
   test "writes the file header for a small-ish entry" do
     {:ok, pid} = StringIO.open("PK\u0001\u00024\u0003\u0014\u0000+\u0002\u0017\u0000\u0000pBH\xA5^\u0001\u0000\x85\u0003\u0000\u0000.\xDF\r\u0000\n\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\xA4\x81i\xB7\r\u0000a-file.txt")
 
-    assert ByteReader.read_4b(pid) == 0x02014b50
-    assert ByteReader.read_2b(pid) == 820
-    assert ByteReader.read_2b(pid) == 20
-    assert ByteReader.read_2b(pid) == 555
-    assert ByteReader.read_2b(pid) == 23
-    assert ByteReader.read_2b(pid) == 28672
-    assert ByteReader.read_2b(pid) == 18498
-    assert ByteReader.read_4b(pid) == 89765
-    assert ByteReader.read_4b(pid) == 901
-    assert ByteReader.read_4b(pid) == 909102
-    assert ByteReader.read_2b(pid) == 10
-    assert ByteReader.read_2b(pid) == 0
-    assert ByteReader.read_2b(pid) == 0
-    assert ByteReader.read_2b(pid) == 0
-    assert ByteReader.read_2b(pid) == 0
-    assert ByteReader.read_4b(pid) == 2175008768
-    assert ByteReader.read_4b(pid) == 898921
-    assert IO.binread(pid, 10) == "a-file.txt"
+    assert ByteReader.read_4b(pid) == 0x02014b50 # Central directory entry sig
+    assert ByteReader.read_2b(pid) == 820        # version made by
+    assert ByteReader.read_2b(pid) == 20         # version need to extract
+    assert ByteReader.read_2b(pid) == 555        # general purpose bit flag (explicitly set to bogus value to ensure we pass it through
+    assert ByteReader.read_2b(pid) == 23         # compression method (explicitly set to bogus value)
+    assert ByteReader.read_2b(pid) == 28672      # last mod file time
+    assert ByteReader.read_2b(pid) == 18498      # last mod file date
+    assert ByteReader.read_4b(pid) == 89765      # crc32
+    assert ByteReader.read_4b(pid) == 901        # compressed size
+    assert ByteReader.read_4b(pid) == 909102     # uncompressed size
+    assert ByteReader.read_2b(pid) == 10         # filename length
+    assert ByteReader.read_2b(pid) == 0          # extra field length
+    assert ByteReader.read_2b(pid) == 0          # file comment
+    assert ByteReader.read_2b(pid) == 0          # disk number, must be blanked to the maximum value because of The Unarchiver bug
+    assert ByteReader.read_2b(pid) == 0          # internal file attributes
+    assert ByteReader.read_4b(pid) == 2175008768 # external file attributes
+    assert ByteReader.read_4b(pid) == 898921     # relative offset of local header
+    assert IO.binread(pid, 10) == "a-file.txt"   # the filename
   end
 
   test "writes the file header for an entry that requires Zip64 extra because of the uncompressed size" do
     {:ok, pid} = StringIO.open("PK\u0001\u00024\u0003-\u0000+\u0002\u0017\u0000\u0000pBH\xA5^\u0001\u0000\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\n\u0000 \u0000\u0000\u0000\xFF\xFF\u0000\u0000\u0000\u0000\xA4\x81\xFF\xFF\xFF\xFFa-file.txt\u0001\u0000\u001C\u0000\u0002\u0000\u0000\u0000\u0010\u0000\u0000\u0000\x85\u0003\u0000\u0000\u0000\u0000\u0000\u0000i\xB7\r\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000")
 
-    assert ByteReader.read_4b(pid) == 0x02014b50
-    assert ByteReader.read_2b(pid) == 820
-    assert ByteReader.read_2b(pid) == 45
-    assert ByteReader.read_2b(pid) == 555
-    assert ByteReader.read_2b(pid) == 23
-    assert ByteReader.read_2b(pid) == 28672
-    assert ByteReader.read_2b(pid) == 18498
-    assert ByteReader.read_4b(pid) == 89765
-    assert ByteReader.read_4b(pid) == 0xFFFFFFFF
-    assert ByteReader.read_4b(pid) == 0xFFFFFFFF
-    assert ByteReader.read_2b(pid) == 10
-    assert ByteReader.read_2b(pid) == 32
-    assert ByteReader.read_2b(pid) == 0
-    assert ByteReader.read_2b(pid) == 0xFFFF
-    assert ByteReader.read_2b(pid) == 0
-    assert ByteReader.read_4b(pid) == 2175008768
-    assert ByteReader.read_4b(pid) == 0xFFFFFFFF
-    assert IO.binread(pid, 10) == "a-file.txt"
+    assert ByteReader.read_4b(pid) == 0x02014b50    # Central directory entry sig
+    assert ByteReader.read_2b(pid) == 820           # version made by
+    assert ByteReader.read_2b(pid) == 45            # version need to extract
+    assert ByteReader.read_2b(pid) == 555           # general purpose bit flag (explicitly set to bogus value to ensure we pass it through
+    assert ByteReader.read_2b(pid) == 23            # compression method (explicitly set to bogus value)
+    assert ByteReader.read_2b(pid) == 28672         # last mod file time
+    assert ByteReader.read_2b(pid) == 18498         # last mod file date
+    assert ByteReader.read_4b(pid) == 89765         # crc32
+    assert ByteReader.read_4b(pid) == 0xFFFFFFFF    # compressed size
+    assert ByteReader.read_4b(pid) == 0xFFFFFFFF    # uncompressed size
+    assert ByteReader.read_2b(pid) == 10            # filename length
+    assert ByteReader.read_2b(pid) == 32            # extra field length
+    assert ByteReader.read_2b(pid) == 0             # file comment
+    assert ByteReader.read_2b(pid) == 0xFFFF        # disk number, must be blanked to the maximum value because of The Unarchiver bug
+    assert ByteReader.read_2b(pid) == 0             # internal file attributes
+    assert ByteReader.read_4b(pid) == 2175008768    # external file attributes
+    assert ByteReader.read_4b(pid) == 0xFFFFFFFF    # relative offset of local header
+    assert IO.binread(pid, 10) == "a-file.txt"      # the filename
 
-    assert ByteReader.read_2b(pid) == 1
-    assert ByteReader.read_2b(pid) == 28
-    assert ByteReader.read_8b(pid) == 0xFFFFFFFFF+3
-    assert ByteReader.read_8b(pid) == 901
-    assert ByteReader.read_8b(pid) == 898921
+    assert ByteReader.read_2b(pid) == 1             # Zip64 extra tag
+    assert ByteReader.read_2b(pid) == 28            # Size of the Zip64 extra payload
+    assert ByteReader.read_8b(pid) == 0xFFFFFFFFF+3 # uncompressed size
+    assert ByteReader.read_8b(pid) == 901           # compressed size
+    assert ByteReader.read_8b(pid) == 898921        # local file header location
   end
 
   test "writes the file header for an entry that requires Zip64 extra because of the compressed size" do
     {:ok, pid} = StringIO.open("PK\u0001\u00024\u0003-\u0000+\u0002\u0017\u0000\u0000pBH\xA5^\u0001\u0000\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\n\u0000 \u0000\u0000\u0000\xFF\xFF\u0000\u0000\u0000\u0000\xA4\x81\xFF\xFF\xFF\xFFa-file.txt\u0001\u0000\u001C\u0000\x85\u0003\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0010\u0000\u0000\u0000i\xB7\r\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000")
 
-    assert ByteReader.read_4b(pid) == 0x02014b50
-    assert ByteReader.read_2b(pid) == 820
-    assert ByteReader.read_2b(pid) == 45
-    assert ByteReader.read_2b(pid) == 555
-    assert ByteReader.read_2b(pid) == 23
-    assert ByteReader.read_2b(pid) == 28672
-    assert ByteReader.read_2b(pid) == 18498
-    assert ByteReader.read_4b(pid) == 89765
-    assert ByteReader.read_4b(pid) == 0xFFFFFFFF
-    assert ByteReader.read_4b(pid) == 0xFFFFFFFF
-    assert ByteReader.read_2b(pid) == 10
-    assert ByteReader.read_2b(pid) == 32
-    assert ByteReader.read_2b(pid) == 0
-    assert ByteReader.read_2b(pid) == 0xFFFF
-    assert ByteReader.read_2b(pid) == 0
-    assert ByteReader.read_4b(pid) == 2175008768
-    assert ByteReader.read_4b(pid) == 0xFFFFFFFF
-    assert IO.binread(pid, 10) == "a-file.txt"
+    assert ByteReader.read_4b(pid) == 0x02014b50    # Central directory entry sig
+    assert ByteReader.read_2b(pid) == 820           # version made by
+    assert ByteReader.read_2b(pid) == 45            # version need to extract
+    assert ByteReader.read_2b(pid) == 555           # general purpose bit flag (explicitly set to bogus value to ensure we pass it through
+    assert ByteReader.read_2b(pid) == 23            # compression method (explicitly set to bogus value)
+    assert ByteReader.read_2b(pid) == 28672         # last mod file time
+    assert ByteReader.read_2b(pid) == 18498         # last mod file date
+    assert ByteReader.read_4b(pid) == 89765         # crc32
+    assert ByteReader.read_4b(pid) == 0xFFFFFFFF    # compressed size
+    assert ByteReader.read_4b(pid) == 0xFFFFFFFF    # uncompressed size
+    assert ByteReader.read_2b(pid) == 10            # filename length
+    assert ByteReader.read_2b(pid) == 32            # extra field length
+    assert ByteReader.read_2b(pid) == 0             # file comment
+    assert ByteReader.read_2b(pid) == 0xFFFF        # disk number, must be blanked to the maximum value because of The Unarchiver bug
+    assert ByteReader.read_2b(pid) == 0             # internal file attributes
+    assert ByteReader.read_4b(pid) == 2175008768    # external file attributes
+    assert ByteReader.read_4b(pid) == 0xFFFFFFFF    # relative offset of local header
+    assert IO.binread(pid, 10) == "a-file.txt"      # the filename
 
-    assert ByteReader.read_2b(pid) == 1
-    assert ByteReader.read_2b(pid) == 28
-    assert ByteReader.read_8b(pid) == 901
-    assert ByteReader.read_8b(pid) == 0xFFFFFFFFF+3
-    assert ByteReader.read_8b(pid) == 898921
+    assert ByteReader.read_2b(pid) == 1             # Zip64 extra tag
+    assert ByteReader.read_2b(pid) == 28            # Size of the Zip64 extra payload
+    assert ByteReader.read_8b(pid) == 901           # uncompressed size
+    assert ByteReader.read_8b(pid) == 0xFFFFFFFFF+3 # compressed size
+    assert ByteReader.read_8b(pid) == 898921        # local file header location
   end
 
   test "writes the file header for an entry that requires Zip64 extra because of the local file header offset being beyound 4GB" do
     {:ok, pid} = StringIO.open("PK\u0001\u00024\u0003-\u0000+\u0002\u0017\u0000\u0000pBH\xA5^\u0001\u0000\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\n\u0000 \u0000\u0000\u0000\xFF\xFF\u0000\u0000\u0000\u0000\xA4\x81\xFF\xFF\xFF\xFFa-file.txt\u0001\u0000\u001C\u0000\xB3\x82\f\u0000\u0000\u0000\u0000\u0000\u0015#\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0000")
 
-    assert ByteReader.read_4b(pid) == 0x02014b50
-    assert ByteReader.read_2b(pid) == 820
-    assert ByteReader.read_2b(pid) == 45
-    assert ByteReader.read_2b(pid) == 555
-    assert ByteReader.read_2b(pid) == 23
-    assert ByteReader.read_2b(pid) == 28672
-    assert ByteReader.read_2b(pid) == 18498
-    assert ByteReader.read_4b(pid) == 89765
-    assert ByteReader.read_4b(pid) == 0xFFFFFFFF
-    assert ByteReader.read_4b(pid) == 0xFFFFFFFF
-    assert ByteReader.read_2b(pid) == 10
-    assert ByteReader.read_2b(pid) == 32
-    assert ByteReader.read_2b(pid) == 0
-    assert ByteReader.read_2b(pid) == 0xFFFF
-    assert ByteReader.read_2b(pid) == 0
-    assert ByteReader.read_4b(pid) == 2175008768
-    assert ByteReader.read_4b(pid) == 0xFFFFFFFF
-    assert IO.binread(pid, 10) == "a-file.txt"
+    assert ByteReader.read_4b(pid) == 0x02014b50    # Central directory entry sig
+    assert ByteReader.read_2b(pid) == 820           # version made by
+    assert ByteReader.read_2b(pid) == 45            # version need to extract
+    assert ByteReader.read_2b(pid) == 555           # general purpose bit flag (explicitly set to bogus value to ensure we pass it through
+    assert ByteReader.read_2b(pid) == 23            # compression method (explicitly set to bogus value)
+    assert ByteReader.read_2b(pid) == 28672         # last mod file time
+    assert ByteReader.read_2b(pid) == 18498         # last mod file date
+    assert ByteReader.read_4b(pid) == 89765         # crc32
+    assert ByteReader.read_4b(pid) == 0xFFFFFFFF    # compressed size
+    assert ByteReader.read_4b(pid) == 0xFFFFFFFF    # uncompressed size
+    assert ByteReader.read_2b(pid) == 10            # filename length
+    assert ByteReader.read_2b(pid) == 32            # extra field length
+    assert ByteReader.read_2b(pid) == 0             # file comment
+    assert ByteReader.read_2b(pid) == 0xFFFF        # disk number, must be blanked to the maximum value because of The Unarchiver bug
+    assert ByteReader.read_2b(pid) == 0             # internal file attributes
+    assert ByteReader.read_4b(pid) == 2175008768    # external file attributes
+    assert ByteReader.read_4b(pid) == 0xFFFFFFFF    # relative offset of local header
+    assert IO.binread(pid, 10) == "a-file.txt"      # the filename
 
-    assert ByteReader.read_2b(pid) == 1
-    assert ByteReader.read_2b(pid) == 28
-    assert ByteReader.read_8b(pid) == 819891
-    assert ByteReader.read_8b(pid) == 8981
-    assert ByteReader.read_8b(pid) == 0xFFFFFFFFF+1
+    assert ByteReader.read_2b(pid) == 1             # Zip64 extra tag
+    assert ByteReader.read_2b(pid) == 28            # Size of the Zip64 extra payload
+    assert ByteReader.read_8b(pid) == 819891        # uncompressed size
+    assert ByteReader.read_8b(pid) == 8981          # compressed size
+    assert ByteReader.read_8b(pid) == 0xFFFFFFFFF+1 # local file header location
   end
 
   #write_end_of_central_directory
