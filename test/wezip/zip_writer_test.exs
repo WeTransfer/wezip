@@ -52,7 +52,7 @@ defmodule WezipTest.ZipWriter do
     assert IO.binread(pid, 1) == :eof
   end
 
-  test "'writes the local file header for an entry that does require Zip64 based on uncompressed size (with the Zip64 extra)" do
+  test "writes the local file header for an entry that does require Zip64 based on uncompressed size (with the Zip64 extra)" do
     # mtime = Time.utc(2016, 7, 17, 13, 48)
 
     # pid = WeZip.write_local_file_header(%{})
