@@ -253,13 +253,13 @@ defmodule WezipTest.ZipWriter do
 
     {:ok, pid} = StringIO.open("PK\u0005\u0006\u0000\u0000\u0000\u0000P\u0000P\u0000\x83#\u0000\u0000\x8B\xB8\x8A\u0000\u001D\u0000Written using ZipTricks 4.0.0")
 
-    assert ByteReader.read_4b(pid) == 0x06054b50
-    assert ByteReader.read_2b(pid) == 0
-    assert ByteReader.read_2b(pid) == 0
-    assert ByteReader.read_2b(pid) == number_of_files
-    assert ByteReader.read_2b(pid) == number_of_files
-    assert ByteReader.read_4b(pid) == 9091
-    assert ByteReader.read_4b(pid) == 9091211
+    assert ByteReader.read_4b(pid) == 0x06054b50      # EOCD signature
+    assert ByteReader.read_2b(pid) == 0               # number of this disk
+    assert ByteReader.read_2b(pid) == 0               # number of the disk with the EOCD record
+    assert ByteReader.read_2b(pid) == number_of_files # number of files on this disk
+    assert ByteReader.read_2b(pid) == number_of_files # number of files in central directory total (for all disks)
+    assert ByteReader.read_4b(pid) == 9091            # size of the central directory (cdir records for all files)
+    assert ByteReader.read_4b(pid) == 9091211         # start of central directory offset from the beginning of file/disk
 
     comment_length = ByteReader.read_2b(pid)
     assert comment_length != 0
@@ -283,30 +283,31 @@ defmodule WezipTest.ZipWriter do
     number_of_files = 135 # MAKE THIS RANDOM LIKE ABOVE
     {:ok, pid} = StringIO.open("PK\u0006\u0006,\u0000\u0000\u0000\u0000\u0000\u0000\u00004\u0003-\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\x87\u0000\u0000\u0000\u0000\u0000\u0000\u0000\x87\u0000\u0000\u0000\u0000\u0000\u0000\u0000\x83#\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001\u0000\u0000\u0000PK\u0006\a\u0000\u0000\u0000\u0000\x85#\u0000\u0000\u0001\u0000\u0000\u0000\u0001\u0000\u0000\u0000PK\u0005\u0006\u0000\u0000\u0000\u0000\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\u001D\u0000Written using ZipTricks 4.0.0")
 
-    assert ByteReader.read_4b(pid) == 0x06064b50
-    assert ByteReader.read_8b(pid) == 44
-    assert ByteReader.read_2b(pid) == 820
-    assert ByteReader.read_2b(pid) == 45
-    assert ByteReader.read_4b(pid) == 0
-    assert ByteReader.read_4b(pid) == 0
-    assert ByteReader.read_8b(pid) == number_of_files
-    assert ByteReader.read_8b(pid) == number_of_files
-    assert ByteReader.read_8b(pid) == 9091
-    assert ByteReader.read_8b(pid) == 0xFFFFFFFF+3
+    assert ByteReader.read_4b(pid) == 0x06064b50            # Zip64 EOCD signature
+    assert ByteReader.read_8b(pid) == 44                    # Zip64 EOCD record size
+    assert ByteReader.read_2b(pid) == 820                   # Version made by
+    assert ByteReader.read_2b(pid) == 45                    # Version needed to extract
+    assert ByteReader.read_4b(pid) == 0                     # Number of this disk
+    assert ByteReader.read_4b(pid) == 0                     # Number of the disk with the Zip64 EOCD record
+    assert ByteReader.read_8b(pid) == number_of_files       # Number of entries in the central directory of this disk
+    assert ByteReader.read_8b(pid) == number_of_files       # Number of entries in the central directories of all disks
+    assert ByteReader.read_8b(pid) == 9091                  # Central directory size
+    assert ByteReader.read_8b(pid) == 0xFFFFFFFF+3          # Start of central directory location
 
 
-    assert ByteReader.read_4b(pid) == 0x07064b50
-    assert ByteReader.read_4b(pid) == 0
-    assert ByteReader.read_8b(pid) == 0xFFFFFFFF + 3 + 9091
-    assert ByteReader.read_4b(pid) == 1
+    assert ByteReader.read_4b(pid) == 0x07064b50            # Zip64 EOCD locator signature
+    assert ByteReader.read_4b(pid) == 0                     # Number of the disk with the EOCD locator signature
+    assert ByteReader.read_8b(pid) == 0xFFFFFFFF + 3 + 9091 # Where the Zip64 EOCD record starts
+    assert ByteReader.read_4b(pid) == 1                     # Total number of disks
 
-    assert ByteReader.read_4b(pid) == 0x06054b50
-    assert ByteReader.read_2b(pid) == 0
-    assert ByteReader.read_2b(pid) == 0
-    assert ByteReader.read_2b(pid) == 0xFFFF
-    assert ByteReader.read_2b(pid) == 0xFFFF
-    assert ByteReader.read_4b(pid) == 0xFFFFFFFF
-    assert ByteReader.read_4b(pid) == 0xFFFFFFFF
+    # Then the usual EOCD record
+    assert ByteReader.read_4b(pid) == 0x06054b50            # EOCD signature
+    assert ByteReader.read_2b(pid) == 0                     # number of this disk
+    assert ByteReader.read_2b(pid) == 0                     # number of the disk with the EOCD record
+    assert ByteReader.read_2b(pid) == 0xFFFF                # number of files on this disk
+    assert ByteReader.read_2b(pid) == 0xFFFF                # number of files in central directory total (for all disks)
+    assert ByteReader.read_4b(pid) == 0xFFFFFFFF            # size of the central directory (cdir records for all files)
+    assert ByteReader.read_4b(pid) == 0xFFFFFFFF            # start of central directory offset from the beginning of file/disk
 
     comment_length = ByteReader.read_2b(pid)
     assert comment_length != 0
@@ -316,28 +317,28 @@ defmodule WezipTest.ZipWriter do
   test "writes out the Zip64 EOCD if the archive has more than 0xFFFF files" do
     {:ok, pid} = StringIO.open("PK\u0006\u0006,\u0000\u0000\u0000\u0000\u0000\u0000\u00004\u0003-\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\x83#\u0000\u0000\u0000\u0000\u0000\u0000{\u0000\u0000\u0000\u0000\u0000\u0000\u0000PK\u0006\a\u0000\u0000\u0000\u0000\xFE#\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000PK\u0005\u0006\u0000\u0000\u0000\u0000\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\u001D\u0000Written using ZipTricks 4.0.0")
 
-    assert ByteReader.read_4b(pid) == 0x06064b50
+    assert ByteReader.read_4b(pid) == 0x06064b50 # Zip64 EOCD signature
     ByteReader.read_8b(pid)
     ByteReader.read_2b(pid)
     ByteReader.read_2b(pid)
     ByteReader.read_4b(pid)
     ByteReader.read_4b(pid)
 
-    assert ByteReader.read_8b(pid) == 0xFFFF+1
-    assert ByteReader.read_8b(pid) == 0xFFFF+1
+    assert ByteReader.read_8b(pid) == 0xFFFF+1   # Number of entries in the central directory of this disk
+    assert ByteReader.read_8b(pid) == 0xFFFF+1   # Number of entries in the central directories of all disks
   end
 
   test "writes out the Zip64 EOCD if the central directory size exceeds 0xFFFFFFFF" do
     {:ok, pid} = StringIO.open("PK\u0006\u0006,\u0000\u0000\u0000\u0000\u0000\u0000\u00004\u0003-\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0001\u0000\u0000\u0000{\u0000\u0000\u0000\u0000\u0000\u0000\u0000PK\u0006\a\u0000\u0000\u0000\u0000|\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0001\u0000\u0000\u0000PK\u0005\u0006\u0000\u0000\u0000\u0000\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\u001D\u0000Written using ZipTricks 4.0.0")
 
-    assert ByteReader.read_4b(pid) == 0x06064b50
+    assert ByteReader.read_4b(pid) == 0x06064b50 # Zip64 EOCD signature
     ByteReader.read_8b(pid)
     ByteReader.read_2b(pid)
     ByteReader.read_2b(pid)
     ByteReader.read_4b(pid)
     ByteReader.read_4b(pid)
 
-    assert ByteReader.read_8b(pid) == 5
-    assert ByteReader.read_8b(pid) == 5
+    assert ByteReader.read_8b(pid) == 5          # Number of entries in the central directory of this disk
+    assert ByteReader.read_8b(pid) == 5          # Number of entries in the central directories of all disks
   end
 end
