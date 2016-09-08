@@ -103,7 +103,9 @@ defmodule WeZipTest.ZipWriter do
 
   #write_data_descriptor
   test "writes 4-byte sizes into the data descriptor for standard file sizes" do
-    {:ok, pid} = StringIO.open("PK\a\b{\u0000\u0000\u0000\xDD^\u0001\u0000\xC0\u001E\u000F\u0000")
+    pid = WeZip.write_data_descriptor(%{
+      io: "", crc32: 123, compressed_size: 89821, uncompressed_size: 990912
+    })
 
     assert ByteReader.read_4b(pid) == 0x08074b50 # Signature
     assert ByteReader.read_4b(pid) == 123        # CRC32
@@ -113,7 +115,9 @@ defmodule WeZipTest.ZipWriter do
   end
 
   test "writes 8-byte sizes into the data descriptor for Zip64 compressed file size" do
-    {:ok, pid} = StringIO.open("PK\a\b{\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\xC0\u001E\u000F\u0000\u0000\u0000\u0000\u0000")
+    pid = WeZip.write_data_descriptor(%{
+      io: "", crc32: 123, compressed_size: 0xFFFFFFFF+1, uncompressed_size: 990912
+    })
 
     assert ByteReader.read_4b(pid) == 0x08074b50   # Signature
     assert ByteReader.read_4b(pid) == 123          # CRC32
@@ -123,7 +127,9 @@ defmodule WeZipTest.ZipWriter do
   end
 
   test "writes 8-byte sizes into the data descriptor for Zip64 uncompressed file size" do
-    {:ok, pid} = StringIO.open("PK\a\b{\u0000\u0000\u0000{\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000")
+    pid = WeZip.write_data_descriptor(%{
+      io: "", crc32: 123, compressed_size: 123, uncompressed_size: 0xFFFFFFFF+1
+    })
 
     assert ByteReader.read_4b(pid) == 0x08074b50   # Signature
     assert ByteReader.read_4b(pid) == 123          # CRC32

@@ -66,9 +66,37 @@ defmodule WeZip.ZipWriter do
     pid
   end
 
-  # def write_data_descriptor(params) do
-  #
-  # end
+  def write_data_descriptor(%{
+    io: io, crc32: crc32, compressed_size: compressed_size, uncompressed_size: uncompressed_size
+  }) when compressed_size > @four_byte_max_uint or uncompressed_size > @four_byte_max_uint do
+    metadata = [
+      io,
+      pack_4b(0x08074b50),       # Although not originally assigned a signature, the value 0x08074b50 has commonly been adopted as a signature value
+      pack_4b(crc32),            # crc-32                          4 bytes
+      pack_8b(compressed_size),  # compressed size                 8 bytes for ZIP64
+      pack_8b(uncompressed_size) # uncompressed size               8 bytes for ZIP64
+    ] |> Enum.join
+
+    {:ok, pid} = StringIO.open(metadata)
+
+    pid
+  end
+
+  def write_data_descriptor(%{
+    io: io, crc32: crc32, compressed_size: compressed_size, uncompressed_size: uncompressed_size
+  }) do
+    metadata = [
+      io,
+      pack_4b(0x08074b50),       # Although not originally assigned a signature, the value 0x08074b50 has commonly been adopted as a signature value
+      pack_4b(crc32),            # crc-32                          4 bytes
+      pack_4b(compressed_size),  # compressed size                 4 bytes
+      pack_4b(uncompressed_size) # uncompressed size               4 bytes
+    ] |> Enum.join
+
+    {:ok, pid} = StringIO.open(metadata)
+
+    pid
+  end
 
   # def write_central_directory_file_header(params) do
   #
