@@ -12,4 +12,8 @@ defmodule WeZip do
   def write_central_directory_file_header(params) do
     ZipWriter.write_central_directory_file_header(params)
   end
+
+  def write_end_of_central_directory(params) do
+    ZipWriter.write_end_of_central_directory(params)
+  end
 end

@@ -110,26 +110,26 @@ defmodule WeZip.ZipWriter do
   uncompressed_size > @four_byte_max_uint do
     metadata = [
       io,
-      pack_4b(0x02014b50),
-      @made_by_signature,
-      pack_2b(@version_needed_to_extract_zip64),
-      pack_2b(gp_flags),
-      pack_2b(storage_mode),
-      pack_2b(to_binary_dos_time(mtime)),
-      pack_2b(to_binary_dos_date(mtime)),
-      pack_4b(crc32),
-      pack_4b(@four_byte_max_uint),
-      pack_4b(@four_byte_max_uint),
-      pack_2b(byte_size(filename)),
-      pack_2b(%{io: "", compressed_size: 0, uncompressed_size: 0, local_file_header_location: 0}
+      pack_4b(0x02014b50),                                                                       # central file header signature   4 bytes
+      @made_by_signature,                                                                        # version made by                 2 bytes
+      pack_2b(@version_needed_to_extract_zip64),                                                 # version needed to extract       2 bytes
+      pack_2b(gp_flags),                                                                         # general purpose bit flag        2 bytes
+      pack_2b(storage_mode),                                                                     # compression method              2 bytes
+      pack_2b(to_binary_dos_time(mtime)),                                                        # last mod file time              2 bytes
+      pack_2b(to_binary_dos_date(mtime)),                                                        # last mod file date              2 bytes
+      pack_4b(crc32),                                                                            # crc-32                          4 bytes
+      pack_4b(@four_byte_max_uint),                                                              # compressed size                 4 bytes
+      pack_4b(@four_byte_max_uint),                                                              # uncompressed size               4 bytes
+      pack_2b(byte_size(filename)),                                                              # file name length                2 bytes
+      pack_2b(%{io: "", compressed_size: 0, uncompressed_size: 0, local_file_header_location: 0} # extra field length              2 bytes
       |> write_zip_64_extra_for_central_directory_file_header |> byte_size),
-      pack_2b(0),
-      pack_2b(@two_byte_max_uint),
-      pack_2b(0),
-      pack_4b(@default_external_attributes),
-      pack_4b(@four_byte_max_uint),
-      filename,
-      write_zip_64_extra_for_central_directory_file_header(%{
+      pack_2b(0),                                                                                # file comment length             2 bytes
+      pack_2b(@two_byte_max_uint),                                                               # disk number start               2 bytes
+      pack_2b(0),                                                                                # internal file attributes        2 bytes
+      pack_4b(@default_external_attributes),                                                     # external file attributes        4 bytes
+      pack_4b(@four_byte_max_uint),                                                              # relative offset of local header 4 bytes
+      filename,                                                                                  # file name (variable size)
+      write_zip_64_extra_for_central_directory_file_header(%{                                    # extra field (variable size)
         io: io, local_file_header_location: local_file_header_location,
         compressed_size: compressed_size, uncompressed_size: uncompressed_size
       })
@@ -147,24 +147,24 @@ defmodule WeZip.ZipWriter do
   }) do
     metadata = [
       io,
-      pack_4b(0x02014b50),
-      @made_by_signature,
-      pack_2b(@version_needed_to_extract),
-      pack_2b(gp_flags),
-      pack_2b(storage_mode),
-      pack_2b(to_binary_dos_time(mtime)),
-      pack_2b(to_binary_dos_date(mtime)),
-      pack_4b(crc32),
-      pack_4b(compressed_size),
-      pack_4b(uncompressed_size),
-      pack_2b(byte_size(filename)),
-      pack_2b(0),
-      pack_2b(0),
-      pack_2b(0),
-      pack_2b(0),
-      pack_4b(@default_external_attributes),
-      pack_4b(local_file_header_location),
-      filename
+      pack_4b(0x02014b50),                   # central file header signature   4 bytes
+      @made_by_signature,                    # version made by                 2 bytes
+      pack_2b(@version_needed_to_extract),   # version needed to extract       2 bytes
+      pack_2b(gp_flags),                     # general purpose bit flag        2 bytes
+      pack_2b(storage_mode),                 # compression method              2 bytes
+      pack_2b(to_binary_dos_time(mtime)),    # last mod file time              2 bytes
+      pack_2b(to_binary_dos_date(mtime)),    # last mod file date              2 bytes
+      pack_4b(crc32),                        # crc-32                          4 bytes
+      pack_4b(compressed_size),              # compressed size                 4 bytes
+      pack_4b(uncompressed_size),            # uncompressed size               4 bytes
+      pack_2b(byte_size(filename)),          # file name length                2 bytes
+      pack_2b(0),                            # extra field length              2 bytes
+      pack_2b(0),                            # file comment length             2 bytes
+      pack_2b(0),                            # disk number start               2 bytes
+      pack_2b(0),                            # internal file attributes        2 bytes
+      pack_4b(@default_external_attributes), # external file attributes        4 bytes
+      pack_4b(local_file_header_location),   # relative offset of local header 4 bytes
+      filename                               # file name (variable size)
     ] |> Enum.join
 
     {:ok, pid} = StringIO.open(metadata)
@@ -172,9 +172,9 @@ defmodule WeZip.ZipWriter do
     pid
   end
 
-  # def write_end_of_central_directory(params) do
-  #
-  # end
+  def write_end_of_central_directory(params) do
+
+  end
 
   defp write_zip_64_extra_for_local_file_header(%{
     io: io, compressed_size: compressed_size, uncompressed_size: uncompressed_size
