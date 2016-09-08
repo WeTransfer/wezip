@@ -33,7 +33,7 @@ defmodule WeZip.ZipWriter do
       pack_2b(byte_size(filename)),                               # file name length            2 bytes
       pack_2b(%{io: "", compressed_size: 0, uncompressed_size: 0} # extra field length          2 bytes
       |> write_zip_64_extra_for_local_file_header |> byte_size),
-      filename,                                                   # file name (variable size)
+      filename,                                                   # file name            (variable size)
       write_zip_64_extra_for_local_file_header(%{
         io: io, compressed_size: compressed_size, uncompressed_size: uncompressed_size
       })
@@ -62,7 +62,7 @@ defmodule WeZip.ZipWriter do
       pack_4b(uncompressed_size),          # uncompressed size           4 bytes
       pack_2b(byte_size(filename)),        # file name length            2 bytes
       pack_2b(0),                          # extra field length          2 bytes
-      filename                             # file name (variable size)
+      filename                             # file name            (variable size)
     ] |> Enum.join
 
     {:ok, pid} = StringIO.open(metadata)
@@ -73,6 +73,7 @@ defmodule WeZip.ZipWriter do
   def write_data_descriptor(%{
     io: io, crc32: crc32, compressed_size: compressed_size, uncompressed_size: uncompressed_size
   }) when compressed_size > @four_byte_max_uint or uncompressed_size > @four_byte_max_uint do
+
     metadata = [
       io,
       pack_4b(0x08074b50),       # Although not originally assigned a signature, the value 0x08074b50 has commonly been adopted as a signature value
@@ -89,6 +90,7 @@ defmodule WeZip.ZipWriter do
   def write_data_descriptor(%{
     io: io, crc32: crc32, compressed_size: compressed_size, uncompressed_size: uncompressed_size
   }) do
+
     metadata = [
       io,
       pack_4b(0x08074b50),       # Although not originally assigned a signature, the value 0x08074b50 has commonly been adopted as a signature value
@@ -129,8 +131,8 @@ defmodule WeZip.ZipWriter do
       pack_2b(0),                                                                                # internal file attributes        2 bytes
       pack_4b(@default_external_attributes),                                                     # external file attributes        4 bytes
       pack_4b(@four_byte_max_uint),                                                              # relative offset of local header 4 bytes
-      filename,                                                                                  # file name (variable size)
-      write_zip_64_extra_for_central_directory_file_header(%{                                    # extra field (variable size)
+      filename,                                                                                  # file name                (variable size)
+      write_zip_64_extra_for_central_directory_file_header(%{                                    # extra field              (variable size)
         io: io, local_file_header_location: local_file_header_location,
         compressed_size: compressed_size, uncompressed_size: uncompressed_size
       })
@@ -146,6 +148,7 @@ defmodule WeZip.ZipWriter do
     storage_mode: storage_mode, mtime: mtime, compressed_size: compressed_size, crc32: crc32,
     uncompressed_size: uncompressed_size, filename: filename
   }) do
+
     metadata = [
       io,
       pack_4b(0x02014b50),                   # central file header signature   4 bytes
@@ -165,7 +168,7 @@ defmodule WeZip.ZipWriter do
       pack_2b(0),                            # internal file attributes        2 bytes
       pack_4b(@default_external_attributes), # external file attributes        4 bytes
       pack_4b(local_file_header_location),   # relative offset of local header 4 bytes
-      filename                               # file name (variable size)
+      filename                               # file name                (variable size)
     ] |> Enum.join
 
     {:ok, pid} = StringIO.open(metadata)
@@ -185,29 +188,29 @@ defmodule WeZip.ZipWriter do
 
     metadata = [
       io,
-      pack_4b(0x06064b50),
-      pack_8b(44),
-      @made_by_signature,
-      pack_2b(@version_needed_to_extract_zip64),
-      pack_4b(0),
-      pack_4b(0),
-      pack_8b(num_files_in_archive),
-      pack_8b(num_files_in_archive),
-      pack_8b(central_directory_size),
-      pack_8b(start_of_central_directory_location),
-      pack_4b(0x07064b50),
-      pack_4b(0),
-      pack_8b(start_of_central_directory_location + central_directory_size),
-      pack_4b(1),
-      pack_4b(0x06054b50),
-      pack_2b(0),
-      pack_2b(0),
-      pack_2b(@two_byte_max_uint),
-      pack_2b(@two_byte_max_uint),
-      pack_4b(@four_byte_max_uint),
-      pack_4b(@four_byte_max_uint),
-      pack_2b(byte_size(comment)),
-      comment
+      pack_4b(0x06064b50),                                                   # signature                                    4 bytes  (0x06064b50)
+      pack_8b(44),                                                           # size of zip64 end of central                 8 bytes
+      @made_by_signature,                                                    # version made by                              2 bytes
+      pack_2b(@version_needed_to_extract_zip64),                             # version needed to extract                    2 bytes
+      pack_4b(0),                                                            # number of this disk                          4 bytes
+      pack_4b(0),                                                            # number of the disk                           4 bytes
+      pack_8b(num_files_in_archive),                                         # total number of entries on this disk         8 bytes
+      pack_8b(num_files_in_archive),                                         # total number of entries in central directory 8 bytes
+      pack_8b(central_directory_size),                                       # size of the central directory                8 bytes
+      pack_8b(start_of_central_directory_location),                          # the starting disk number                     8 bytes
+      pack_4b(0x07064b50),                                                   # zip64 end of central dir locator signature   4 bytes
+      pack_4b(0),                                                            # number of the disk from zip64 start to eocd  4 bytes
+      pack_8b(start_of_central_directory_location + central_directory_size), # relative offset of the zip64                 8 bytes
+      pack_4b(1),                                                            # total number of disks                        4 bytes
+      pack_4b(0x06054b50),                                                   # end of central dir signature                 4 bytes
+      pack_2b(0),                                                            # number of this disk                          2 bytes
+      pack_2b(0),                                                            # disk with from central directory             2 bytes
+      pack_2b(@two_byte_max_uint),                                           # total number of entries on disk              2 bytes
+      pack_2b(@two_byte_max_uint),                                           # total number of entries in central directory 2 bytes
+      pack_4b(@four_byte_max_uint),                                          # size of the central directory                4 bytes
+      pack_4b(@four_byte_max_uint),                                          # offset of start of central from disk start   4 bytes
+      pack_2b(byte_size(comment)),                                           # .ZIP file comment length                     2 bytes
+      comment                                                                # .ZIP file comment                     (variable size)
     ] |> Enum.join
 
     {:ok, pid} = StringIO.open(metadata)
@@ -224,15 +227,15 @@ defmodule WeZip.ZipWriter do
 
     metadata = [
       io,
-      pack_4b(0x06054b50),
-      pack_2b(0),
-      pack_2b(0),
-      pack_2b(num_files_in_archive),
-      pack_2b(num_files_in_archive),
-      pack_4b(central_directory_size),
-      pack_4b(start_of_central_directory_location),
-      pack_2b(byte_size(comment)),
-      comment
+      pack_4b(0x06054b50),                          # end of central dir signature                 4 bytes  (0x06054b50
+      pack_2b(0),                                   # number of this disk                          2 bytes
+      pack_2b(0),                                   # disk with from central directory             2 bytes
+      pack_2b(num_files_in_archive),                # total number of entries on disk              2 bytes
+      pack_2b(num_files_in_archive),                # total number of entries in central directory 2 bytes
+      pack_4b(central_directory_size),              # size of the central directory                4 bytes
+      pack_4b(start_of_central_directory_location), # offset of start of central from disk start   4 bytes
+      pack_2b(byte_size(comment)),                  # .ZIP file comment length                     2 bytes
+      comment                                       # .ZIP file comment                     (variable size)
     ] |> Enum.join
 
     {:ok, pid} = StringIO.open(metadata)
@@ -243,6 +246,7 @@ defmodule WeZip.ZipWriter do
   defp write_zip_64_extra_for_local_file_header(%{
     io: io, compressed_size: compressed_size, uncompressed_size: uncompressed_size
   }) do
+
     [
       io,
       pack_2b(0x0001),            # 2 bytes    Tag for this "extra" block type
@@ -256,6 +260,7 @@ defmodule WeZip.ZipWriter do
     io: io, compressed_size: compressed_size, uncompressed_size: uncompressed_size,
     local_file_header_location: local_file_header_location
   }) do
+    
     [
       io,
       pack_2b(0x0001),                     # 2 bytes    Tag for this "extra" block type

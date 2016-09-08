@@ -20,8 +20,7 @@ end
 defmodule WeZipTest.ZipWriter do
   use ExUnit.Case
 
-  # #write_local_file_header
-  test "writes the local file header for an entry that does not require Zip64" do
+  test "#write_local_file_header writes the local file header for an entry that does not require Zip64" do
     mtime = %DateTime{year: 2016, month: 07, day: 17, zone_abbr: "UTC", hour: 13, minute: 48,
     second: 0, time_zone: "UTC", utc_offset: 0, std_offset: 0}
 
@@ -45,7 +44,7 @@ defmodule WeZipTest.ZipWriter do
     assert IO.binread(pid, 1) == :eof
   end
 
-  test "writes the local file header for an entry that does require Zip64 based on uncompressed size (with the Zip64 extra)" do
+  test "#write_local_file_header writes the local file header for an entry that does require Zip64 based on uncompressed size (with the Zip64 extra)" do
     mtime = %DateTime{year: 2016, month: 07, day: 17, zone_abbr: "UTC", hour: 13, minute: 48,
     second: 0, time_zone: "UTC", utc_offset: 0, std_offset: 0}
 
@@ -73,7 +72,7 @@ defmodule WeZipTest.ZipWriter do
     assert ByteReader.read_8b(pid) == 768          # compressed size
   end
 
-  test "writes the local file header for an entry that does require Zip64 based on compressed size (with the Zip64 extra)" do
+  test "#write_local_file_header writes the local file header for an entry that does require Zip64 based on compressed size (with the Zip64 extra)" do
     mtime = %DateTime{year: 2016, month: 07, day: 17, zone_abbr: "UTC", hour: 13, minute: 48,
     second: 0, time_zone: "UTC", utc_offset: 0, std_offset: 0}
 
@@ -101,8 +100,7 @@ defmodule WeZipTest.ZipWriter do
     assert ByteReader.read_8b(pid) == 0xFFFFFFFF+1 # compressed size
   end
 
-  #write_data_descriptor
-  test "writes 4-byte sizes into the data descriptor for standard file sizes" do
+  test "#write_data_descriptor writes 4-byte sizes into the data descriptor for standard file sizes" do
     pid = WeZip.write_data_descriptor(%{
       io: "", crc32: 123, compressed_size: 89821, uncompressed_size: 990912
     })
@@ -114,7 +112,7 @@ defmodule WeZipTest.ZipWriter do
     assert IO.binread(pid, 1) == :eof
   end
 
-  test "writes 8-byte sizes into the data descriptor for Zip64 compressed file size" do
+  test "#write_data_descriptor writes 8-byte sizes into the data descriptor for Zip64 compressed file size" do
     pid = WeZip.write_data_descriptor(%{
       io: "", crc32: 123, compressed_size: 0xFFFFFFFF+1, uncompressed_size: 990912
     })
@@ -126,7 +124,7 @@ defmodule WeZipTest.ZipWriter do
     assert IO.binread(pid, 1) == :eof
   end
 
-  test "writes 8-byte sizes into the data descriptor for Zip64 uncompressed file size" do
+  test "#write_data_descriptor writes 8-byte sizes into the data descriptor for Zip64 uncompressed file size" do
     pid = WeZip.write_data_descriptor(%{
       io: "", crc32: 123, compressed_size: 123, uncompressed_size: 0xFFFFFFFF+1
     })
@@ -138,8 +136,7 @@ defmodule WeZipTest.ZipWriter do
     assert IO.binread(pid, 1) == :eof
   end
 
-  # write_central_directory_file_header
-  test "writes the file header for a small-ish entry" do
+  test "#write_central_directory_file_header writes the file header for a small-ish entry" do
     mtime = %DateTime{year: 2016, month: 02, day: 02, zone_abbr: "UTC", hour: 14, minute: 00,
     second: 0, time_zone: "UTC", utc_offset: 0, std_offset: 0}
 
@@ -169,7 +166,7 @@ defmodule WeZipTest.ZipWriter do
     assert IO.binread(pid, 10) == "a-file.txt"   # the filename
   end
 
-  test "writes the file header for an entry that requires Zip64 extra because of the uncompressed size" do
+  test "#write_central_directory_file_header writes the file header for an entry that requires Zip64 extra because of the uncompressed size" do
     mtime = %DateTime{year: 2016, month: 02, day: 02, zone_abbr: "UTC", hour: 14, minute: 00,
     second: 0, time_zone: "UTC", utc_offset: 0, std_offset: 0}
 
@@ -205,7 +202,7 @@ defmodule WeZipTest.ZipWriter do
     assert ByteReader.read_8b(pid) == 898921        # local file header location
   end
 
-  test "writes the file header for an entry that requires Zip64 extra because of the compressed size" do
+  test "#write_central_directory_file_header writes the file header for an entry that requires Zip64 extra because of the compressed size" do
     mtime = %DateTime{year: 2016, month: 02, day: 02, zone_abbr: "UTC", hour: 14, minute: 00,
     second: 0, time_zone: "UTC", utc_offset: 0, std_offset: 0}
 
@@ -241,7 +238,7 @@ defmodule WeZipTest.ZipWriter do
     assert ByteReader.read_8b(pid) == 898921        # local file header location
   end
 
-  test "writes the file header for an entry that requires Zip64 extra because of the local file header offset being beyound 4GB" do
+  test "#write_central_directory_file_header writes the file header for an entry that requires Zip64 extra because of the local file header offset being beyound 4GB" do
     mtime = %DateTime{year: 2016, month: 02, day: 02, zone_abbr: "UTC", hour: 14, minute: 00,
     second: 0, time_zone: "UTC", utc_offset: 0, std_offset: 0}
 
@@ -277,8 +274,7 @@ defmodule WeZipTest.ZipWriter do
     assert ByteReader.read_8b(pid) == 0xFFFFFFFFF+1 # local file header location
   end
 
-  #write_end_of_central_directory
-  test "writes out the EOCD with all markers for a small ZIP file with just a few entries" do
+  test "#write_end_of_central_directory writes out the EOCD with all markers for a small ZIP file with just a few entries" do
     number_of_files = Enum.random(8..190)
 
     pid = WeZip.write_end_of_central_directory(%{
@@ -300,7 +296,7 @@ defmodule WeZipTest.ZipWriter do
   end
 
   ## NOTE: This one was a messy code Im not sure if the logic is right here:
-  test "writes out the custom comment" do
+  test "#write_end_of_central_directory writes out the custom comment" do
     comment = "Ohai mate"
 
     pid = WeZip.write_end_of_central_directory(%{
@@ -314,7 +310,7 @@ defmodule WeZipTest.ZipWriter do
     assert comment_size == byte_size(comment)
   end
 
-  test "writes out the Zip64 EOCD as well if the central directory is located beyound 4GB in the archive" do
+  test "#write_end_of_central_directory writes out the Zip64 EOCD as well if the central directory is located beyound 4GB in the archive" do
     number_of_files = Enum.random(8..190)
 
     pid = WeZip.write_end_of_central_directory(%{
@@ -353,7 +349,7 @@ defmodule WeZipTest.ZipWriter do
     assert IO.binread(pid, comment_length) |> String.match?(~r/ZipTricks/) == true
   end
 
-  test "writes out the Zip64 EOCD if the archive has more than 0xFFFF files" do
+  test "#write_end_of_central_directory writes out the Zip64 EOCD if the archive has more than 0xFFFF files" do
     pid = WeZip.write_end_of_central_directory(%{
       io: "", start_of_central_directory_location: 123, central_directory_size: 9091,
       num_files_in_archive: 0xFFFF+1
@@ -370,7 +366,7 @@ defmodule WeZipTest.ZipWriter do
     assert ByteReader.read_8b(pid) == 0xFFFF+1   # Number of entries in the central directories of all disks
   end
 
-  test "writes out the Zip64 EOCD if the central directory size exceeds 0xFFFFFFFF" do
+  test "#write_end_of_central_directory writes out the Zip64 EOCD if the central directory size exceeds 0xFFFFFFFF" do
     pid = WeZip.write_end_of_central_directory(%{
       io: "", start_of_central_directory_location: 123, central_directory_size: 0xFFFFFFFF+2,
       num_files_in_archive: 5
