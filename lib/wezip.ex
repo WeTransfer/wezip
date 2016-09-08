@@ -8,4 +8,8 @@ defmodule WeZip do
   def write_data_descriptor(params) do
     ZipWriter.write_data_descriptor(params)
   end
+
+  def write_central_directory_file_header(params) do
+    ZipWriter.write_central_directory_file_header(params)
+  end
 end

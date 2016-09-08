@@ -140,7 +140,14 @@ defmodule WeZipTest.ZipWriter do
 
   # write_central_directory_file_header
   test "writes the file header for a small-ish entry" do
-    {:ok, pid} = StringIO.open("PK\u0001\u00024\u0003\u0014\u0000+\u0002\u0017\u0000\u0000pBH\xA5^\u0001\u0000\x85\u0003\u0000\u0000.\xDF\r\u0000\n\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\xA4\x81i\xB7\r\u0000a-file.txt")
+    mtime = %DateTime{year: 2016, month: 02, day: 02, zone_abbr: "UTC", hour: 14, minute: 00,
+    second: 0, time_zone: "UTC", utc_offset: 0, std_offset: 0}
+
+    pid = WeZip.write_central_directory_file_header(%{
+      io: "", local_file_header_location: 898921, gp_flags: 555, storage_mode: 23, mtime: mtime,
+      compressed_size: 901, uncompressed_size: 909102, crc32: 89765, filename: "a-file.txt",
+      external_attrs: 123
+    })
 
     assert ByteReader.read_4b(pid) == 0x02014b50 # Central directory entry sig
     assert ByteReader.read_2b(pid) == 820        # version made by
@@ -163,7 +170,14 @@ defmodule WeZipTest.ZipWriter do
   end
 
   test "writes the file header for an entry that requires Zip64 extra because of the uncompressed size" do
-    {:ok, pid} = StringIO.open("PK\u0001\u00024\u0003-\u0000+\u0002\u0017\u0000\u0000pBH\xA5^\u0001\u0000\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\n\u0000 \u0000\u0000\u0000\xFF\xFF\u0000\u0000\u0000\u0000\xA4\x81\xFF\xFF\xFF\xFFa-file.txt\u0001\u0000\u001C\u0000\u0002\u0000\u0000\u0000\u0010\u0000\u0000\u0000\x85\u0003\u0000\u0000\u0000\u0000\u0000\u0000i\xB7\r\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000")
+    mtime = %DateTime{year: 2016, month: 02, day: 02, zone_abbr: "UTC", hour: 14, minute: 00,
+    second: 0, time_zone: "UTC", utc_offset: 0, std_offset: 0}
+
+    pid = WeZip.write_central_directory_file_header(%{
+      io: "", local_file_header_location: 898921, gp_flags: 555, storage_mode: 23,
+      compressed_size: 901, uncompressed_size: 0xFFFFFFFFF+3, mtime: mtime, crc32: 89765,
+      filename: "a-file.txt", external_attrs: 123
+    })
 
     assert ByteReader.read_4b(pid) == 0x02014b50    # Central directory entry sig
     assert ByteReader.read_2b(pid) == 820           # version made by
@@ -192,7 +206,14 @@ defmodule WeZipTest.ZipWriter do
   end
 
   test "writes the file header for an entry that requires Zip64 extra because of the compressed size" do
-    {:ok, pid} = StringIO.open("PK\u0001\u00024\u0003-\u0000+\u0002\u0017\u0000\u0000pBH\xA5^\u0001\u0000\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\n\u0000 \u0000\u0000\u0000\xFF\xFF\u0000\u0000\u0000\u0000\xA4\x81\xFF\xFF\xFF\xFFa-file.txt\u0001\u0000\u001C\u0000\x85\u0003\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0010\u0000\u0000\u0000i\xB7\r\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000")
+    mtime = %DateTime{year: 2016, month: 02, day: 02, zone_abbr: "UTC", hour: 14, minute: 00,
+    second: 0, time_zone: "UTC", utc_offset: 0, std_offset: 0}
+
+    pid = WeZip.write_central_directory_file_header(%{
+      io: "", local_file_header_location: 898921, gp_flags: 555, storage_mode: 23,
+      compressed_size: 0xFFFFFFFFF+3, uncompressed_size: 901, mtime: mtime, crc32: 89765,
+      filename: "a-file.txt", external_attrs: 123
+    })
 
     assert ByteReader.read_4b(pid) == 0x02014b50    # Central directory entry sig
     assert ByteReader.read_2b(pid) == 820           # version made by
@@ -221,7 +242,14 @@ defmodule WeZipTest.ZipWriter do
   end
 
   test "writes the file header for an entry that requires Zip64 extra because of the local file header offset being beyound 4GB" do
-    {:ok, pid} = StringIO.open("PK\u0001\u00024\u0003-\u0000+\u0002\u0017\u0000\u0000pBH\xA5^\u0001\u0000\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\n\u0000 \u0000\u0000\u0000\xFF\xFF\u0000\u0000\u0000\u0000\xA4\x81\xFF\xFF\xFF\xFFa-file.txt\u0001\u0000\u001C\u0000\xB3\x82\f\u0000\u0000\u0000\u0000\u0000\u0015#\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0000")
+    mtime = %DateTime{year: 2016, month: 02, day: 02, zone_abbr: "UTC", hour: 14, minute: 00,
+    second: 0, time_zone: "UTC", utc_offset: 0, std_offset: 0}
+
+    pid = WeZip.write_central_directory_file_header(%{
+      io: "", local_file_header_location: 0xFFFFFFFFF+1, gp_flags: 555, storage_mode: 23,
+      compressed_size: 8981, uncompressed_size: 819891, mtime: mtime, crc32: 89765,
+      filename: "a-file.txt", external_attrs: 123
+    })
 
     assert ByteReader.read_4b(pid) == 0x02014b50    # Central directory entry sig
     assert ByteReader.read_2b(pid) == 820           # version made by
@@ -256,6 +284,11 @@ defmodule WeZipTest.ZipWriter do
 
     {:ok, pid} = StringIO.open("PK\u0005\u0006\u0000\u0000\u0000\u0000P\u0000P\u0000\x83#\u0000\u0000\x8B\xB8\x8A\u0000\u001D\u0000Written using ZipTricks 4.0.0")
 
+    # pid = WeZip.write_central_directory_file_header(%{
+    #   io: "", start_of_central_directory_location: 9091211, central_directory_size: 9091,
+    #   num_files_in_archive: number_of_files
+    # })
+
     assert ByteReader.read_4b(pid) == 0x06054b50      # EOCD signature
     assert ByteReader.read_2b(pid) == 0               # number of this disk
     assert ByteReader.read_2b(pid) == 0               # number of the disk with the EOCD record
@@ -284,6 +317,7 @@ defmodule WeZipTest.ZipWriter do
   test "writes out the Zip64 EOCD as well if the central directory is located beyound 4GB in the archive" do
     # number_of_files = Enum.random(8..190)
     number_of_files = 135 # MAKE THIS RANDOM LIKE ABOVE
+
     {:ok, pid} = StringIO.open("PK\u0006\u0006,\u0000\u0000\u0000\u0000\u0000\u0000\u00004\u0003-\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\x87\u0000\u0000\u0000\u0000\u0000\u0000\u0000\x87\u0000\u0000\u0000\u0000\u0000\u0000\u0000\x83#\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001\u0000\u0000\u0000PK\u0006\a\u0000\u0000\u0000\u0000\x85#\u0000\u0000\u0001\u0000\u0000\u0000\u0001\u0000\u0000\u0000PK\u0005\u0006\u0000\u0000\u0000\u0000\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\u001D\u0000Written using ZipTricks 4.0.0")
 
     assert ByteReader.read_4b(pid) == 0x06064b50            # Zip64 EOCD signature
