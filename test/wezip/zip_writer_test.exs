@@ -48,13 +48,11 @@ defmodule WeZipTest.ZipWriter do
   test "writes the local file header for an entry that does require Zip64 based on uncompressed size (with the Zip64 extra)" do
     mtime = %DateTime{year: 2016, month: 07, day: 17, zone_abbr: "UTC", hour: 13, minute: 48,
     second: 0, time_zone: "UTC", utc_offset: 0, std_offset: 0}
-    
-    # pid = WeZip.write_local_file_header(%{
-    #   io: "", gp_flags: 12, crc32: 456, compressed_size: 768, uncompressed_size: 901, mtime: mtime,
-    #   filename: "foo.bin", storage_mode: 8
-    # })
 
-    {:ok, pid} = StringIO.open("PK\u0003\u0004-\u0000\f\u0000\b\u0000\u0000n\xF1H\xC8\u0001\u0000\u0000\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\a\u0000\u0014\u0000foo.bin\u0001\u0000\u0010\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0003\u0000\u0000\u0000\u0000\u0000\u0000")
+    pid = WeZip.write_local_file_header(%{
+      io: "", gp_flags: 12, crc32: 456, compressed_size: 768, uncompressed_size: 0xFFFFFFFF+1,
+      mtime: mtime, filename: "foo.bin", storage_mode: 8
+    })
 
     assert ByteReader.read_4b(pid) == 0x04034b50   # Signature
     assert ByteReader.read_2b(pid) == 45           # Version needed to extract
@@ -76,11 +74,13 @@ defmodule WeZipTest.ZipWriter do
   end
 
   test "writes the local file header for an entry that does require Zip64 based on compressed size (with the Zip64 extra)" do
-    # mtime = Time.utc(2016, 7, 17, 13, 48)
+    mtime = %DateTime{year: 2016, month: 07, day: 17, zone_abbr: "UTC", hour: 13, minute: 48,
+    second: 0, time_zone: "UTC", utc_offset: 0, std_offset: 0}
 
-    # pid = WeZip.write_local_file_header(%{})
-
-    {:ok, pid} = StringIO.open("PK\u0003\u0004-\u0000\f\u0000\b\u0000\u0000n\xF1H\xC8\u0001\u0000\u0000\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\a\u0000\u0014\u0000foo.bin\u0001\u0000\u0010\u0000\u0000\u0003\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000")
+    pid = WeZip.write_local_file_header(%{
+      io: "", gp_flags: 12, crc32: 456, compressed_size: 0xFFFFFFFF+1, uncompressed_size: 768,
+      mtime: mtime, filename: "foo.bin", storage_mode: 8
+    })
 
     assert ByteReader.read_4b(pid) == 0x04034b50   # Signature
     assert ByteReader.read_2b(pid) == 45           # Version needed to extract
