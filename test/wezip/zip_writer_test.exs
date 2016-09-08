@@ -279,15 +279,12 @@ defmodule WeZipTest.ZipWriter do
 
   #write_end_of_central_directory
   test "writes out the EOCD with all markers for a small ZIP file with just a few entries" do
-    # number_of_files = Enum.random(8..190)
-    number_of_files = 80 # MAKE THIS RANDOM LIKE ABOVE
+    number_of_files = Enum.random(8..190)
 
-    {:ok, pid} = StringIO.open("PK\u0005\u0006\u0000\u0000\u0000\u0000P\u0000P\u0000\x83#\u0000\u0000\x8B\xB8\x8A\u0000\u001D\u0000Written using ZipTricks 4.0.0")
-
-    # pid = WeZip.write_central_directory_file_header(%{
-    #   io: "", start_of_central_directory_location: 9091211, central_directory_size: 9091,
-    #   num_files_in_archive: number_of_files
-    # })
+    pid = WeZip.write_end_of_central_directory(%{
+      io: "", start_of_central_directory_location: 9091211, central_directory_size: 9091,
+      num_files_in_archive: number_of_files
+    })
 
     assert ByteReader.read_4b(pid) == 0x06054b50      # EOCD signature
     assert ByteReader.read_2b(pid) == 0               # number of this disk
@@ -302,11 +299,14 @@ defmodule WeZipTest.ZipWriter do
     assert IO.binread(pid, comment_length) |> String.match?(~r/ZipTricks/) == true
   end
 
-  ## TODO: This one was a messy code Im not sure if the logic is right here:
+  ## NOTE: This one was a messy code Im not sure if the logic is right here:
   test "writes out the custom comment" do
     comment = "Ohai mate"
 
-    {:ok, pid} = StringIO.open("PK\x05\x06\x00\x00\x00\x00\x04\x00\x04\x00\x83#\x00\x00\x8B\xB8\x8A\x00\t\x00Ohai mate")
+    pid = WeZip.write_end_of_central_directory(%{
+      io: "", start_of_central_directory_location: 9091211,
+      central_directory_size: 9091, num_files_in_archive: 4, comment: comment
+    })
 
     size_and_comment_range = ((byte_size(comment) + 2) * -1)..-1
     size_and_comment = IO.binread(pid, :all) |> String.slice(size_and_comment_range)
@@ -315,10 +315,12 @@ defmodule WeZipTest.ZipWriter do
   end
 
   test "writes out the Zip64 EOCD as well if the central directory is located beyound 4GB in the archive" do
-    # number_of_files = Enum.random(8..190)
-    number_of_files = 135 # MAKE THIS RANDOM LIKE ABOVE
+    number_of_files = Enum.random(8..190)
 
-    {:ok, pid} = StringIO.open("PK\u0006\u0006,\u0000\u0000\u0000\u0000\u0000\u0000\u00004\u0003-\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\x87\u0000\u0000\u0000\u0000\u0000\u0000\u0000\x87\u0000\u0000\u0000\u0000\u0000\u0000\u0000\x83#\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001\u0000\u0000\u0000PK\u0006\a\u0000\u0000\u0000\u0000\x85#\u0000\u0000\u0001\u0000\u0000\u0000\u0001\u0000\u0000\u0000PK\u0005\u0006\u0000\u0000\u0000\u0000\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\u001D\u0000Written using ZipTricks 4.0.0")
+    pid = WeZip.write_end_of_central_directory(%{
+      io: "", start_of_central_directory_location: 0xFFFFFFFF+3, central_directory_size: 9091,
+      num_files_in_archive: number_of_files
+    })
 
     assert ByteReader.read_4b(pid) == 0x06064b50            # Zip64 EOCD signature
     assert ByteReader.read_8b(pid) == 44                    # Zip64 EOCD record size
@@ -352,7 +354,10 @@ defmodule WeZipTest.ZipWriter do
   end
 
   test "writes out the Zip64 EOCD if the archive has more than 0xFFFF files" do
-    {:ok, pid} = StringIO.open("PK\u0006\u0006,\u0000\u0000\u0000\u0000\u0000\u0000\u00004\u0003-\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\x83#\u0000\u0000\u0000\u0000\u0000\u0000{\u0000\u0000\u0000\u0000\u0000\u0000\u0000PK\u0006\a\u0000\u0000\u0000\u0000\xFE#\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000PK\u0005\u0006\u0000\u0000\u0000\u0000\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\u001D\u0000Written using ZipTricks 4.0.0")
+    pid = WeZip.write_end_of_central_directory(%{
+      io: "", start_of_central_directory_location: 123, central_directory_size: 9091,
+      num_files_in_archive: 0xFFFF+1
+    })
 
     assert ByteReader.read_4b(pid) == 0x06064b50 # Zip64 EOCD signature
     ByteReader.read_8b(pid)
@@ -366,7 +371,10 @@ defmodule WeZipTest.ZipWriter do
   end
 
   test "writes out the Zip64 EOCD if the central directory size exceeds 0xFFFFFFFF" do
-    {:ok, pid} = StringIO.open("PK\u0006\u0006,\u0000\u0000\u0000\u0000\u0000\u0000\u00004\u0003-\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0001\u0000\u0000\u0000{\u0000\u0000\u0000\u0000\u0000\u0000\u0000PK\u0006\a\u0000\u0000\u0000\u0000|\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0001\u0000\u0000\u0000PK\u0005\u0006\u0000\u0000\u0000\u0000\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\u001D\u0000Written using ZipTricks 4.0.0")
+    pid = WeZip.write_end_of_central_directory(%{
+      io: "", start_of_central_directory_location: 123, central_directory_size: 0xFFFFFFFF+2,
+      num_files_in_archive: 5
+    })
 
     assert ByteReader.read_4b(pid) == 0x06064b50 # Zip64 EOCD signature
     ByteReader.read_8b(pid)

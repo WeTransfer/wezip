@@ -25,8 +25,8 @@ defmodule WeZip.ZipWriter do
       pack_2b(@version_needed_to_extract_zip64),                  # version needed to extract   2 bytes
       pack_2b(gp_flags),                                          # general purpose bit flag    2 bytes
       pack_2b(storage_mode),                                      # compression method          2 bytes
-      pack_2b(to_binary_dos_time(mtime)),                # last mod file time          2 bytes
-      pack_2b(to_binary_dos_date(mtime)),                # last mod file date          2 bytes
+      pack_2b(to_binary_dos_time(mtime)),                         # last mod file time          2 bytes
+      pack_2b(to_binary_dos_date(mtime)),                         # last mod file date          2 bytes
       pack_4b(crc32),                                             # crc-32                      4 bytes
       pack_4b(@four_byte_max_uint),                               # compressed size             4 bytes
       pack_4b(@four_byte_max_uint),                               # uncompressed size           4 bytes
@@ -51,18 +51,18 @@ defmodule WeZip.ZipWriter do
 
     metadata = [
       io,
-      pack_4b(0x04034b50),                         # local file header signature 4 bytes  (0x04034b50)
-      pack_2b(@version_needed_to_extract),         # version needed to extract   2 bytes
-      pack_2b(gp_flags),                           # general purpose bit flag    2 bytes
-      pack_2b(storage_mode),                       # compression method          2 bytes
-      pack_2b(to_binary_dos_time(mtime)), # last mod file time          2 bytes
-      pack_2b(to_binary_dos_date(mtime)), # last mod file date          2 bytes
-      pack_4b(crc32),                              # crc-32                      4 bytes
-      pack_4b(compressed_size),                    # compressed size             4 bytes
-      pack_4b(uncompressed_size),                  # uncompressed size           4 bytes
-      pack_2b(byte_size(filename)),                # file name length            2 bytes
-      pack_2b(0),                                  # extra field length          2 bytes
-      filename                                     # file name (variable size)
+      pack_4b(0x04034b50),                 # local file header signature 4 bytes  (0x04034b50)
+      pack_2b(@version_needed_to_extract), # version needed to extract   2 bytes
+      pack_2b(gp_flags),                   # general purpose bit flag    2 bytes
+      pack_2b(storage_mode),               # compression method          2 bytes
+      pack_2b(to_binary_dos_time(mtime)),  # last mod file time          2 bytes
+      pack_2b(to_binary_dos_date(mtime)),  # last mod file date          2 bytes
+      pack_4b(crc32),                      # crc-32                      4 bytes
+      pack_4b(compressed_size),            # compressed size             4 bytes
+      pack_4b(uncompressed_size),          # uncompressed size           4 bytes
+      pack_2b(byte_size(filename)),        # file name length            2 bytes
+      pack_2b(0),                          # extra field length          2 bytes
+      filename                             # file name (variable size)
     ] |> Enum.join
 
     {:ok, pid} = StringIO.open(metadata)
@@ -106,8 +106,9 @@ defmodule WeZip.ZipWriter do
     io: io, local_file_header_location: local_file_header_location, gp_flags: gp_flags,
     storage_mode: storage_mode, mtime: mtime, compressed_size: compressed_size, crc32: crc32,
     uncompressed_size: uncompressed_size, filename: filename
-  }) when local_file_header_location > @four_byte_max_uint or compressed_size > @four_byte_max_uint or
-  uncompressed_size > @four_byte_max_uint do
+  }) when local_file_header_location > @four_byte_max_uint or
+  compressed_size > @four_byte_max_uint or uncompressed_size > @four_byte_max_uint do
+
     metadata = [
       io,
       pack_4b(0x02014b50),                                                                       # central file header signature   4 bytes
@@ -172,14 +173,78 @@ defmodule WeZip.ZipWriter do
     pid
   end
 
-  def write_end_of_central_directory(params) do
+  def write_end_of_central_directory(params = %{
+    io: io, start_of_central_directory_location: start_of_central_directory_location,
+    central_directory_size: central_directory_size, num_files_in_archive: num_files_in_archive
+  }) when central_directory_size > @four_byte_max_uint or
+  start_of_central_directory_location > @four_byte_max_uint or
+  start_of_central_directory_location + central_directory_size > @four_byte_max_uint or
+  num_files_in_archive > @two_byte_max_uint do
 
+    comment = if (params[:comment]), do: params.comment, else: @zip_tricks_comment
+
+    metadata = [
+      io,
+      pack_4b(0x06064b50),
+      pack_8b(44),
+      @made_by_signature,
+      pack_2b(@version_needed_to_extract_zip64),
+      pack_4b(0),
+      pack_4b(0),
+      pack_8b(num_files_in_archive),
+      pack_8b(num_files_in_archive),
+      pack_8b(central_directory_size),
+      pack_8b(start_of_central_directory_location),
+      pack_4b(0x07064b50),
+      pack_4b(0),
+      pack_8b(start_of_central_directory_location + central_directory_size),
+      pack_4b(1),
+      pack_4b(0x06054b50),
+      pack_2b(0),
+      pack_2b(0),
+      pack_2b(@two_byte_max_uint),
+      pack_2b(@two_byte_max_uint),
+      pack_4b(@four_byte_max_uint),
+      pack_4b(@four_byte_max_uint),
+      pack_2b(byte_size(comment)),
+      comment
+    ] |> Enum.join
+
+    {:ok, pid} = StringIO.open(metadata)
+
+    pid
+  end
+
+  def write_end_of_central_directory(params = %{
+    io: io, start_of_central_directory_location: start_of_central_directory_location,
+    central_directory_size: central_directory_size, num_files_in_archive: num_files_in_archive
+  }) do
+
+    comment = if (params[:comment]), do: params.comment, else: @zip_tricks_comment
+
+    metadata = [
+      io,
+      pack_4b(0x06054b50),
+      pack_2b(0),
+      pack_2b(0),
+      pack_2b(num_files_in_archive),
+      pack_2b(num_files_in_archive),
+      pack_4b(central_directory_size),
+      pack_4b(start_of_central_directory_location),
+      pack_2b(byte_size(comment)),
+      comment
+    ] |> Enum.join
+
+    {:ok, pid} = StringIO.open(metadata)
+
+    pid
   end
 
   defp write_zip_64_extra_for_local_file_header(%{
     io: io, compressed_size: compressed_size, uncompressed_size: uncompressed_size
   }) do
     [
+      io,
       pack_2b(0x0001),            # 2 bytes    Tag for this "extra" block type
       pack_2b(16),                # 2 bytes    Size of this "extra" block. For us it will always be 16 (2x8)
       pack_8b(uncompressed_size), # 8 bytes    Original uncompressed file size
@@ -193,12 +258,12 @@ defmodule WeZip.ZipWriter do
   }) do
     [
       io,
-      pack_2b(0x0001),
-      pack_2b(28),
-      pack_8b(uncompressed_size),
-      pack_8b(compressed_size),
-      pack_8b(local_file_header_location),
-      pack_4b(0)
+      pack_2b(0x0001),                     # 2 bytes    Tag for this "extra" block type
+      pack_2b(28),                         # 2 bytes    Size of this "extra" block. For us it will always be 28
+      pack_8b(uncompressed_size),          # 8 bytes    Original uncompressed file size
+      pack_8b(compressed_size),            # 8 bytes    Size of compressed data
+      pack_8b(local_file_header_location), # 8 bytes    Offset of local header record
+      pack_4b(0)                           # 4 bytes    Number of the disk on which this file starts
     ] |> Enum.join
   end
 
